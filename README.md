@@ -4,6 +4,8 @@ I just followed this [tutorial](https://docs.godotengine.org/en/stable/contribut
 
 It compiles well and the godotExampleProject folder has a sample project that can run and execute Summator.
 
+**You need to create the libpath folder and put the STATIC LIB there.**
+
 Simple view of the module inside godot:
 
 ```
