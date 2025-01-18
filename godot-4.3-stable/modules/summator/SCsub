@@ -1,0 +1,9 @@
+Import('env')
+
+env_summator = env.Clone()
+env_summator.add_source_files(env.modules_sources, "*.cpp") # Add all cpp files to the build
+
+env_summator.Append(CPPPATH=["src/include"])
+
+env.Append(LIBPATH=[Dir('libpath').abspath])
+env.Append(LIBS=['Summator'])
