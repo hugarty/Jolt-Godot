@@ -1,0 +1,11 @@
+Import('env')
+
+env_mmo = env.Clone()
+env_mmo.add_source_files(env.modules_sources, "*.cpp", "*.hpp") # Add all cpp files to the build
+
+env_mmo.disable_warnings()
+env_mmo.Append(CPPPATH=["src/Source"])
+env_mmo.Append(CPPPATH=["src/Build/Linux_Debug/_deps/joltphysics-src"])
+
+env.Append(LIBPATH=[Dir('libpath').abspath])
+env.Append(LIBS=['BRINCA_LIB'])

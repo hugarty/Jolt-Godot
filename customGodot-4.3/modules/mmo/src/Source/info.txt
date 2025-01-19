@@ -1,0 +1,169 @@
+!#!#!#!#!#!##! void SamplesApp::StepPhysics(JobSystem *inJobSystem)
+
+
+HandleInput
+    É a função responsável por lidar com o input do jogador
+void CharacterVirtualTest::HandleInput(Vec3Arg inMovementDirection, bool inJump, bool inSwitchStance, float inDeltaTime)
+
+
+
+
+PrePhysicsUpdate
+    Move os Kinematic objects, Chama o HandleInput e desenha o personagem
+void CharacterBaseTest::PrePhysicsUpdate(const PreUpdateParams &inParams)
+void CharacterVirtualTest::PrePhysicsUpdate(const PreUpdateParams &inParams)
+
+
+
+
+========
+
+class JPH_EXPORT CharacterContactListener
+{
+public:
+	/// Destructor
+	virtual								~CharacterContactListener() = default;
+
+	/// Callback to adjust the velocity of a body as seen by the character. Can be adjusted to e.g. implement a conveyor belt or an inertial dampener system of a sci-fi space ship.
+	/// Note that inBody2 is locked during the callback so you can read its properties freely.
+	virtual void						OnAdjustBodyVelocity(const CharacterVirtual *inCharacter, const Body &inBody2, Vec3 &ioLinearVelocity, Vec3 &ioAngularVelocity) { /* Do nothing, the linear and angular velocity are already filled in */ }
+
+	/// Checks if a character can collide with specified body. Return true if the contact is valid.
+	virtual bool						OnContactValidate(const CharacterVirtual *inCharacter, const BodyID &inBodyID2, const SubShapeID &inSubShapeID2) { return true; }
+
+	/// Same as OnContactValidate but when colliding with a CharacterVirtual
+	virtual bool						OnCharacterContactValidate(const CharacterVirtual *inCharacter, const CharacterVirtual *inOtherCharacter, const SubShapeID &inSubShapeID2) { return true; }
+
+	/// Called whenever the character collides with a body.
+	/// @param inCharacter Character that is being solved
+	/// @param inBodyID2 Body ID of body that is being hit
+	/// @param inSubShapeID2 Sub shape ID of shape that is being hit
+	/// @param inContactPosition World space contact position
+	/// @param inContactNormal World space contact normal
+	/// @param ioSettings Settings returned by the contact callback to indicate how the character should behave
+	virtual void						OnContactAdded(const CharacterVirtual *inCharacter, const BodyID &inBodyID2, const SubShapeID &inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, CharacterContactSettings &ioSettings) { /* Default do nothing */ }
+
+	/// Same as OnContactAdded but when colliding with a CharacterVirtual
+	virtual void						OnCharacterContactAdded(const CharacterVirtual *inCharacter, const CharacterVirtual *inOtherCharacter, const SubShapeID &inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, CharacterContactSettings &ioSettings) { /* Default do nothing */ }
+
+	/// Called whenever a contact is being used by the solver. Allows the listener to override the resulting character velocity (e.g. by preventing sliding along certain surfaces).
+	/// @param inCharacter Character that is being solved
+	/// @param inBodyID2 Body ID of body that is being hit
+	/// @param inSubShapeID2 Sub shape ID of shape that is being hit
+	/// @param inContactPosition World space contact position
+	/// @param inContactNormal World space contact normal
+	/// @param inContactVelocity World space velocity of contact point (e.g. for a moving platform)
+	/// @param inContactMaterial Material of contact point
+	/// @param inCharacterVelocity World space velocity of the character prior to hitting this contact
+	/// @param ioNewCharacterVelocity Contains the calculated world space velocity of the character after hitting this contact, this velocity slides along the surface of the contact. Can be modified by the listener to provide an alternative velocity.
+	virtual void						OnContactSolve(const CharacterVirtual *inCharacter, const BodyID &inBodyID2, const SubShapeID &inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, Vec3Arg inContactVelocity, const PhysicsMaterial *inContactMaterial, Vec3Arg inCharacterVelocity, Vec3 &ioNewCharacterVelocity) { /* Default do nothing */ }
+
+	/// Same as OnContactSolve but when colliding with a CharacterVirtual
+	virtual void						OnCharacterContactSolve(const CharacterVirtual *inCharacter, const CharacterVirtual *inOtherCharacter, const SubShapeID &inSubShapeID2, RVec3Arg inContactPosition, Vec3Arg inContactNormal, Vec3Arg inContactVelocity, const PhysicsMaterial *inContactMaterial, Vec3Arg inCharacterVelocity, Vec3 &ioNewCharacterVelocity) { /* Default do nothing */ }
+};
+
+--------------------------
+
+Character::Character(const CharacterSettings *inSettings, RVec3Arg inPosition, QuatArg inRotation, uint64 inUserData, PhysicsSystem *inSystem) :
+	CharacterBase(inSettings, inSystem),
+	mLayer(inSettings->mLayer)
+{
+	// Construct rigid body
+	BodyCreationSettings settings(mShape, inPosition, inRotation, EMotionType::Dynamic, mLayer);
+	settings.mAllowedDOFs = EAllowedDOFs::TranslationX | EAllowedDOFs::TranslationY | EAllowedDOFs::TranslationZ;
+	settings.mEnhancedInternalEdgeRemoval = inSettings->mEnhancedInternalEdgeRemoval;
+	settings.mOverrideMassProperties = EOverrideMassProperties::MassAndInertiaProvided;
+	settings.mMassPropertiesOverride.mMass = inSettings->mMass;
+	settings.mFriction = inSettings->mFriction;
+	settings.mGravityFactor = inSettings->mGravityFactor;
+	settings.mUserData = inUserData;
+	const Body *body = mSystem->GetBodyInterface().CreateBody(settings);
+	if (body != nullptr)
+		mBodyID = body->GetID();
+}
+
+
+		// Create Character
+		{
+			CharacterSettings settings;
+			settings.mLayer = Layers::MOVING;
+			settings.mShape = mStandingShape;
+			settings.mSupportingVolume = Plane(Vec3::sAxisY(), -cCharacterRadiusStanding); // Accept contacts that touch the lower sphere of the capsule
+			mAnimatedCharacter = new Character(&settings, cCharacterPosition, Quat::sIdentity(), 0, mPhysicsSystem);
+			mAnimatedCharacter->AddToPhysicsSystem();
+		}
+
+		// Create CharacterVirtual
+		{
+			CharacterVirtualSettings settings;
+			settings.mShape = mStandingShape;
+			settings.mSupportingVolume = Plane(Vec3::sAxisY(), -cCharacterRadiusStanding); // Accept contacts that touch the lower sphere of the capsule
+			mAnimatedCharacterVirtual = new CharacterVirtual(&settings, cCharacterVirtualPosition, Quat::sIdentity(), 0, mPhysicsSystem);
+			mAnimatedCharacterVirtual->SetCharacterVsCharacterCollision(&mCharacterVsCharacterCollision);
+			mCharacterVsCharacterCollision.Add(mAnimatedCharacterVirtual);
+		}
+
+		// Create CharacterVirtual with inner rigid body
+		{
+			CharacterVirtualSettings settings;
+			settings.mShape = mStandingShape;
+			settings.mInnerBodyShape = mInnerStandingShape;
+			settings.mSupportingVolume = Plane(Vec3::sAxisY(), -cCharacterRadiusStanding); // Accept contacts that touch the lower sphere of the capsule
+			mAnimatedCharacterVirtualWithInnerBody = new CharacterVirtual(&settings, cCharacterVirtualWithInnerBodyPosition, Quat::sIdentity(), 0, mPhysicsSystem);
+			mAnimatedCharacterVirtualWithInnerBody->SetCharacterVsCharacterCollision(&mCharacterVsCharacterCollision);
+			mCharacterVsCharacterCollision.Add(mAnimatedCharacterVirtualWithInnerBody);
+		}
+
+--------------------------
+		// Move character
+		CharacterVirtual::ExtendedUpdateSettings update_settings;
+		character->ExtendedUpdate(inParams.mDeltaTime,
+			mPhysicsSystem->GetGravity(),
+			update_settings,
+			mPhysicsSystem->GetDefaultBroadPhaseLayerFilter(Layers::MOVING),
+			mPhysicsSystem->GetDefaultLayerFilter(Layers::MOVING),
+			{ },
+			{ },
+			*mTempAllocator);
+
+#########################
+	static inline EBackFaceMode sBackFaceMode = EBackFaceMode::CollideWithBackFaces;
+	static inline float		sUpRotationX = 0;
+	static inline float		sUpRotationZ = 0;
+	static inline float		sMaxSlopeAngle = DegreesToRadians(45.0f);
+	static inline float		sMaxStrength = 100.0f;
+	static inline float		sCharacterPadding = 0.02f;
+	static inline float		sPenetrationRecoverySpeed = 1.0f;
+	static inline float		sPredictiveContactDistance = 0.1f;
+	static inline bool		sEnableWalkStairs = true;
+	static inline bool		sEnableStickToFloor = true;
+	static inline bool		sEnhancedInternalEdgeRemoval = false;
+	static inline bool		sCreateInnerBody = false;
+	static inline bool		sPlayerCanPushOtherCharacters = true;
+	static inline bool		sOtherCharactersCanPushPlayer = true;
+
+
+// Create 'player' character
+	Ref<CharacterVirtualSettings> settings = new CharacterVirtualSettings();
+	settings->mMaxSlopeAngle = sMaxSlopeAngle;
+	settings->mMaxStrength = sMaxStrength;
+	settings->mShape = mStandingShape;
+	settings->mBackFaceMode = sBackFaceMode;
+	settings->mCharacterPadding = sCharacterPadding;
+	settings->mPenetrationRecoverySpeed = sPenetrationRecoverySpeed;
+	settings->mPredictiveContactDistance = sPredictiveContactDistance;
+	settings->mSupportingVolume = Plane(Vec3::sAxisY(), -cCharacterRadiusStanding); // Accept contacts that touch the lower sphere of the capsule
+	settings->mEnhancedInternalEdgeRemoval = sEnhancedInternalEdgeRemoval;
+	settings->mInnerBodyShape = sCreateInnerBody? mInnerStandingShape : nullptr;
+	settings->mInnerBodyLayer = Layers::MOVING;
+
+
+mCharacter = new CharacterVirtual(settings, RVec3::sZero(), Quat::sIdentity(), 0, mPhysicsSystem);
+	mCharacter->SetCharacterVsCharacterCollision(&mCharacterVsCharacterCollision);
+	mCharacterVsCharacterCollision.Add(mCharacter);
+
+character->SetListener(this);
+
+##########################
+
+
