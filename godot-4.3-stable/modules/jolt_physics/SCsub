@@ -2,8 +2,9 @@ Import('env')
 
 env_godot_jolt = env.Clone()
 env_godot_jolt.add_source_files(env.modules_sources, "*.cpp", "*.hpp") # Add all cpp files to the build
-
+env_godot_jolt.add_source_files(env.modules_sources, "src/Source/libraryJoltHelloWorld.cpp")
 env_godot_jolt.disable_warnings()
+
 env_godot_jolt.Append(CPPPATH=["src/Source"])
 env_godot_jolt.Append(CPPPATH=["src/"])
 env_godot_jolt.Append(CPPPATH=[

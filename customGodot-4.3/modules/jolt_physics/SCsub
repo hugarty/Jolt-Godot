@@ -165,6 +165,7 @@ env.modules_sources += thirdparty_obj
 
 
 env_jolt.add_source_files(env.modules_sources, "*.cpp", "*.h") 
+env_jolt.add_source_files(env.modules_sources, "source/libraryJoltHelloWorld.cpp") 
 env_jolt.Append(CPPPATH=["source/"])
 # Godot source files
 

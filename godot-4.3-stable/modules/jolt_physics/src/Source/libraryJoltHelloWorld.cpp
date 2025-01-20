@@ -5,6 +5,7 @@ JPH_SUPPRESS_WARNINGS
 
 // If you want your code to compile using single or double precision write 0.0_r to get a Real value that compiles to double or float depending if JPH_DOUBLE_PRECISION is set or not.
 using namespace JPH::literals;
+using namespace JPH;
 
 // We're also using STL classes in this example
 using namespace std;
@@ -199,7 +200,7 @@ FirstPhysicsManager::FirstPhysicsManager(){
 
 	// Create a factory, this class is responsible for creating instances of classes based on their name or hash and is mainly used for deserialization of saved data.
 	// It is not directly used in this example but still required.
-	JPH::Factory::sInstance = new JPH::Factory();
+	Factory::sInstance = new Factory();
 
 	// Register all physics types with the factory and install their collision handlers with the CollisionDispatch class.
 	// If you have your own custom shape types you probably need to register their handlers with the CollisionDispatch before calling this function.
