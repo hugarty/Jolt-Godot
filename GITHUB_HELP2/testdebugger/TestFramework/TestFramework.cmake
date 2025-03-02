@@ -214,9 +214,11 @@ if (NOT CROSS_COMPILE_ARM AND (Vulkan_FOUND OR WIN32 OR ("${CMAKE_SYSTEM_NAME}" 
 			COMMENT "Linking shaders")
 	endif()
 
+	message("Outside VULKAN_FOUND")
 	# Include the Vulkan library
 	if (Vulkan_FOUND)
 		# Vulkan source files
+		message("Inside VULKAN_FOUND")
 		set(TEST_FRAMEWORK_SRC_FILES
 			${TEST_FRAMEWORK_SRC_FILES}
 			${TEST_FRAMEWORK_ROOT}/Renderer/VK/BufferVK.h
@@ -257,8 +259,11 @@ if (NOT CROSS_COMPILE_ARM AND (Vulkan_FOUND OR WIN32 OR ("${CMAKE_SYSTEM_NAME}" 
 			${PROJECT_SOURCE_DIR}/testdebugger/Assets/Shaders/VK/UIPixelShaderUntextured.frag
 		)
 
+		message("outside Compile Shaders")
 		# Compile GLSL shaders
 		foreach(SHADER ${TEST_FRAMEWORK_GLSL_SHADERS})
+			message("inside Compile Shaders")
+		
 			set(SPV_SHADER ${SHADER}.spv)
 			add_custom_command(OUTPUT ${SPV_SHADER}
 				COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER} -o ${SPV_SHADER}
@@ -294,6 +299,7 @@ if (NOT CROSS_COMPILE_ARM AND (Vulkan_FOUND OR WIN32 OR ("${CMAKE_SYSTEM_NAME}" 
 	target_precompile_headers(TestFramework PUBLIC ${TEST_FRAMEWORK_ROOT}/TestFramework.h)
 
 	if (Vulkan_FOUND)
+		message("inside Vulkan_FOUND 2")
 		# Vulkan configuration
 		target_include_directories(TestFramework PUBLIC ${Vulkan_INCLUDE_DIRS})
 		target_link_libraries(TestFramework LINK_PUBLIC Jolt ${Vulkan_LIBRARIES})
