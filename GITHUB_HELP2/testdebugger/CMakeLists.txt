@@ -6,7 +6,7 @@ include_directories("${PROJECT_SOURCE_DIR}/libs/src/"
     "${PROJECT_SOURCE_DIR}/testdebugger/TestFramework/")
 
 include(TestFramework/TestFramework.cmake)
-target_compile_definitions(TestFramework PUBLIC JPH_DEBUG_RENDERER)
+target_compile_definitions(TestFramework PUBLIC JPH_DEBUG_RENDERER JPH_ENABLE_VULKAN)
 
 add_executable(${BINARY} main.cpp)
 target_link_libraries(${BINARY} PUBLIC ${CMAKE_PROJECT_NAME} TestFramework)
